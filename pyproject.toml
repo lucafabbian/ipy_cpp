@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "ipy_cpp"
+version = "0.0.1"
+authors = [
+  { name="Luca Fabbian", email="luca.fabbian.1999@gmail.com" },
+]
+description = "Jupyter kernel for C++"
+readme = "README.md"
+requires-python = ">=3.6"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/lucafabbian/ipy_cpp"
+"Bug Tracker" = "https://github.com/lucafabbian/ipy_cpp/issues"
