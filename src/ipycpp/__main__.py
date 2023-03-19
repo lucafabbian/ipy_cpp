@@ -1,7 +1,6 @@
 from ipykernel.kernelbase import Kernel
 import subprocess, traceback
 
-
 import asyncio
 from asyncio.subprocess import PIPE
 from asyncio import subprocess
@@ -20,14 +19,8 @@ async def run(command, stdoutcallback, stderrcallback):
     )
     await asyncio.wait(
         [
-            _read_stream(
-                process.stdout,
-								stdoutcallback,
-            ),
-            _read_stream(
-                process.stderr,
-								stderrcallback
-            ),
+            _read_stream(process.stdout, stdoutcallback),
+            _read_stream(process.stderr, stderrcallback),
         ]
     )
     await process.wait()
@@ -51,14 +44,15 @@ def find_option(code, option_name):
 		option = option[:option.index('\n')].strip()
 	return option
 
+
 class CppKernel(Kernel):
-	implementation = 'CppKernel'
+	implementation = 'ipycpp'
 	implementation_version = '1.0'
 	language = 'cpp'
 	language_version = '0.1'
 	language_info = {
-		'name': 'Cpp files',
-		'mimetype': 'text/cpp',
+		'name': 'cpp',
+		'mimetype': 'text/x-c',
 		'file_extension': '.cpp',
 	}
 	banner = "Custom c++ kernel made by Luca Fabbian"
@@ -67,10 +61,18 @@ class CppKernel(Kernel):
 	known_cells = {}
 	stack = []
 
+	def send_error(self, text):
+		stream_content = {'name': 'stderr', 'text': '\033[0;31m' + text + '\033[0m'}
+		self.send_response(self.iopub_socket, 'stream', stream_content)
+
+		return {'status': 'error',
+			'execution_count': self.execution_count,
+		}
+
+
 	async def do_execute(self, code, silent, store_history=True, user_expressions=None,
 		allow_stdin=False, *, cell_id=None):
 		try:
-
 			ipycpp_options = {
 				"ipycpp_file": None,
 				"ipycpp_build": None,
@@ -100,10 +102,21 @@ class CppKernel(Kernel):
 				totalcode += self.known_cells[cell] + "\n"
 			totalcode += "#define IPYCPP_MAIN\n" + code + "\n#undef IPYCPP_MAIN\n" + emptymain
 
+			# return error if no file is specified
+			if not ipycpp_options["ipycpp_file"]:
+				return self.send_error("No file specified\n"
+			   +	"Specify a file with $$ipycpp_file: <file> (e.g. $$ipycpp_file: main.cpp)")
+			
+			# return error if no build or run command is specified
+			if not ipycpp_options["ipycpp_build"] and not ipycpp_options["ipycpp_run"]:
+				return self.send_error("No build or run command specified\n"
+			  	+ "Either specify a build command with $$ipycpp_build: or a run command with $$ipycpp_run:\n"
+					+ "e.g. $$ipycpp_build: g++ -o main main.cpp\n")
+				
+
 			# write code to file
-			if ipycpp_options["ipycpp_file"]:
-				with open(ipycpp_options["ipycpp_file"], 'w') as f:
-					f.write(totalcode)
+			with open(ipycpp_options["ipycpp_file"], 'w') as f:
+				f.write(totalcode)
 
 			commands = []
 			if(ipycpp_options["ipycpp_build"]):
@@ -112,9 +125,47 @@ class CppKernel(Kernel):
 			if(ipycpp_options["ipycpp_run"]):
 				commands.append(ipycpp_options["ipycpp_run"])
 
+			self.is_html_mode = False
+			self.html_text = ""
+			self.is_special_output_disabled = False
+
 
 			def send_stdout(x):
 				text = x.decode("UTF8")
+				if self.is_special_output_disabled:
+					self.send_response(self.iopub_socket, 'stream', {'name': 'stdout', 'text':  text})
+					return
+				
+				if "$$$ipycppr_disable_special_output$$$" in text:
+					self.is_special_output_disabled = True
+					return
+
+				if self.is_html_mode:
+					if "$$$ipycppr_html_end$$$" in text:
+						self.is_html_mode = False
+						content = {
+							'source': 'kernel',
+							'data': {
+								'text/html': self.html_text
+							},
+							'metadata' : {
+								'text/html' : {
+								}
+							}
+						}
+						self.send_response(self.iopub_socket, 'display_data', content)
+					else:
+						self.html_text += text
+					return
+
+					
+
+				if "$$$ipycppr_html_start$$$" in text:
+
+					self.is_html_mode = True
+					self.html_text = ""
+					return
+
 				if "$$$ipycppr_image$$$" in text:
 					image_path = text[text.index("$$$ipycppr_image$$$") + len("$$$ipycppr_image$$$"):].strip()
 					with open(image_path, mode="rb") as png:
@@ -128,10 +179,6 @@ class CppKernel(Kernel):
 								}
 							}
 						}
-						
-
-						# We send the display_data message with
-						# the contents.
 						self.send_response(self.iopub_socket, 'display_data', content)
 					return
 
@@ -151,12 +198,7 @@ class CppKernel(Kernel):
 			}
 	
 		except Exception as ex:
-			stream_content = {'name': 'stderr', 'text': '\033[0;31m' + ''.join(traceback.TracebackException.from_exception(ex).format()) + '\033[0m'}
-			self.send_response(self.iopub_socket, 'stream', stream_content)
-
-			return {'status': 'error',
-	   		'execution_count': self.execution_count,
-			}
+			return self.send_error(''.join(traceback.TracebackException.from_exception(ex).format()))
 
 
 

@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "ipycpp"
-version = "0.0.2"
+version = "0.0.4"
 authors = [
   { name="Luca Fabbian", email="luca.fabbian.1999@gmail.com" },
 ]
-description = "Jupyter kernel for C++ (cpp, cplusplus) with no external deps!"
+description = "Simple jupyter kernel for C++ (cpp, cplusplus) in pure python!"
 readme = "README.md"
 requires-python = ">=3.6"
 classifiers = [
@@ -25,5 +25,6 @@ dependencies = [
 "Bug Tracker" = "https://github.com/lucafabbian/ipycpp/issues"
 
 
+# Install the kernel.json file inside jupyter's data directory
 [tool.hatch.build.targets.wheel.shared-data]
 "kernel.json" = "share/jupyter/kernels/ipycpp/kernel.json"
