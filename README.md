@@ -120,29 +120,33 @@ Advanced example (this will create an interactive widget using the [PetiteVue li
 auto html = R""""(
 
 <div class="widgetcontainer">
-	<div class="widget" v-scope="{ count: 0 }">
-		<button @click="count--">-</button>
-		{{ count }}
-		<button @click="count++">+</button>
-	</div>
+  <div class="widget" v-scope="{ count: 0 }">
+    <button @click="count--">-</button>
+    {{ count }}
+    <button @click="count++">+</button>
+  </div>
 
-	<script>
-	if(!window.INSTALL_PETITE_VUE){
-		let resolve = null;
-		window.INSTALL_PETITE_VUE = new Promise(r => resolve = r);
-		var script = document.createElement('script');
-		script.src = 'https://unpkg.com/petite-vue';
-		script.onload = resolve;
-		document.head.appendChild(script);
-	}
+  <script>
+  if(!window.INSTALL_PETITE_VUE){
+    let resolve = null;
+    window.INSTALL_PETITE_VUE = new Promise(r => resolve = r);
+    function loadPetiteVue(){
+      var script = document.createElement('script');
+      script.src = 'https://unpkg.com/petite-vue';
+      script.onload = resolve;
+      script.onerror = () => setTimeout(loadPetiteVue, 1000)
+      document.head.appendChild(script);
+    }
+    loadPetiteVue()
+  }
 
-	{
-		// get current element right now, and mount it as soon as petite-vue is loaded
-		let element = document.currentScript.previousElementSibling;
-		window.INSTALL_PETITE_VUE.then(() => PetiteVue.createApp().mount(element));
-	}
+  {
+    // get current element right now, and mount it as soon as petite-vue is loaded
+    let element = document.currentScript.previousElementSibling;
+    window.INSTALL_PETITE_VUE.then(() => PetiteVue.createApp().mount(element));
+  }
 
-	</script>
+  </script>
 </div>
 )"""";
 
