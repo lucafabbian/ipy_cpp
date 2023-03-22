@@ -46,7 +46,7 @@ void printHelloWorld(){
 
 ```
 
-Finally, when you want to show some output value, you may declare the usual main function, just remembed to surround it with the special `#ifdef IPYCPP_MAIN` guard
+Finally, when you want to show some output value, you may declare the usual main function, just remembed to surround it with the special `#ifdef IPYCPP_MAIN` guard or use the "clevermain" mode (see below).
 
 ```cpp
 #ifdef IPYCPP_MAIN
@@ -60,6 +60,34 @@ int main(){
 
 Keep in mind that the notebook is stateless. Everything will be recompiled EVERY time. If you change a variable inside a main function and then run another cell, the change will be overwritten.
 
+## CleverMain mode
+If you wish, you may ask `ipycpp` to automatically recognize your main methods. Use the `// $$ipycpp_clevermain: true` on your first cell instead of writing `#ifdef IPYCPP_MAIN` every time.
+
+For example:
+
+```cpp
+// $$ipycpp_file: src/main.cpp
+// $$ipycpp_build: g++ src/main.cpp -o bin/main
+// $$ipycpp_run: bin/main
+// $$ipycpp_clevermain: true
+
+#include <stdio.h>
+
+auto hello = "hello world!";
+
+
+int main(){
+  	printf("%s\n", hello);
+}
+```
+```cpp
+// another cell
+int main(){
+  	printf("another cell, %s\n", hello);
+}
+```
+
+This works 99% of the times, but may incur into issues if you are doing some weird preprocessor magic (`ipycpp` has no way to resolve in advance your `#define` directives).
 
 ## Special formatting
 You may provide non-textual data to the notebook, such as html or images, by printing some special tags. This feature is enabled by default, and let you create interactive notebooks.
@@ -73,10 +101,10 @@ printf("$$$ipycppr_disable_special_output$$$\n");
 ```
 In this way, you will be sure that any further output will be printed "as is".
 
-### images
-You may display an image by printing the special tag `$$$ipycppr_image$$$` followed by the image path. For example:
+### images or other files
+You may display an image (or another kind of file) by printing the special tag `$$$ipycppr_file$$$` followed by the image path. ipycpp will guess the kind of file from the extension. For example:
 ```cpp
-printf("$$$ipycppr_image$$$%s\n", "myfolder/myimage.png");
+printf("$$$ipycppr_file$$$%s\n", "myfolder/myimage.png");
 ```
 
 ### html
